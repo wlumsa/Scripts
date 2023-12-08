@@ -11,25 +11,31 @@ db = firestore.client()
 def upload_monthly_data(excel_path, sheet_name):
     df = pd.read_excel(excel_path, sheet_name=sheet_name)
 
-    # Debugging: Print the first few rows to check the structure and headers
-    print(df.head())
+    # Print the original column names
+    print("Original column names:", df.columns.tolist())
 
-    # Assuming 'Day' is the first column after the headers are correctly set
-    # Try accessing the 'Day' column, if it fails, print an error message
-    try:
-        df['Day'] = pd.to_numeric(df['Day'], errors='coerce')  # Convert non-numeric to NaN
-        df = df.dropna(subset=['Day'])  # Drop rows with NaN in 'Day' column
-        df['Day'] = df['Day'].astype(int)  # Convert 'Day' to integer
-    except KeyError:
-        print("The 'Day' column could not be found in the DataFrame. Please check the Excel file format.")
-        return
+    # Define a mapping from original column names to new names
+    # Example: {'OriginalName1': 'Day', 'OriginalName2': 'Fajr', ...}
+    column_mapping = {
+        'Beginning Time': 'Fajr',
+        'Unnamed: 2': 'Sunrise',
+        'Unnamed: 3': 'Dhuhr',
+        'Unnamed: 4': 'Asr',
+        'Unnamed: 5': 'Maghrib',
+        'Unnamed: 6': 'Isha',
+        'Eqama Time': 'FajrIqamah',
+        'Unnamed: 8': 'DhuhrIqamah',
+        'Unnamed: 9': 'AsrIqamah',
+        'Unnamed: 10': 'MaghribIqamah',
+        'Unnamed: 11': 'IshaIqamah'
+    }
 
-    # Set the column names (assumes no duplicate column names and all required columns are present)
-    df.columns = ["Day", 
-                  "Fajr", "Sunrise", "Dhuhr", "Asr", 
-                  "Magrib", "Isha",
-                  "Fajr Iqamah", "Dhuhr Iqamah", "Asr Iqamah", 
-                  "Magrib Iqamah", "Isha Iqamah"]
+    df.rename(columns=column_mapping, inplace=True)
+
+    # Convert 'Day' to numeric and drop NaNs
+    df['Day'] = pd.to_numeric(df['Day'], errors='coerce')
+    df = df.dropna(subset=['Day'])
+    df['Day'] = df['Day'].astype(int)
 
     # Convert the dataframe to a dictionary
     data_dict = df.to_dict(orient='records')
@@ -39,16 +45,17 @@ def upload_monthly_data(excel_path, sheet_name):
 
     # Batch write operation
     for record in data_dict:
-        day = str(record['Day'])  # Convert day to string to use as document ID
-        # Set the document in Firestore using the day as the document ID
+        day = str(record['Day'])
         month_ref.document(sheet_name).collection('Days').document(day).set(record)
 
     print(f"Data from sheet '{sheet_name}' uploaded to Firestore under 'PrayerTimings/{sheet_name}/Days'")
 
 # Usage
+
+
+# Usage
 excel_file_path = 'yearly_timetable.xlsx'
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-
 for month in months:
     upload_monthly_data(excel_file_path, month)
 
