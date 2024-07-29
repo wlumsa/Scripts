@@ -1,1 +1,5 @@
-firebaseconfig.json
+# Ignore credentials.json file
+credentials.json
+.venv
+token.json
+.env
