@@ -8,7 +8,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
 import time
-
+from openpyxl import load_workbook
 # If modifying these scopes, delete the file token.json.
 SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
@@ -118,6 +118,22 @@ def main():
         classes_df = classes_df.dropna(subset=["Subject"])
         classes_df = classes_df[classes_df["Subject"] != ""]
         print(classes_df)
+
+        excel_file = "studentSchedules.xlsx"
+        sheet_name = f"{NAME} {SEMESTER}"
+
+        if os.path.exists(excel_file):
+            
+            with pd.ExcelWriter(excel_file, engine='openpyxl', mode='a') as writer:
+                classes_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                
+        else:
+            with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+                classes_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                
+
+
+        
         
         # Create a new calendar
         calendar = {
