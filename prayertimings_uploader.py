@@ -4,20 +4,22 @@ import uuid
 from dotenv import load_dotenv
 import os
 from datetime import datetime
+import math
+
 # Initialize the Supabase client
 load_dotenv()
-url = ""  # Your Supabase URL
-key = ""  # Your Supabase API key
+url=""
+key=""
 supabase: Client = create_client(url, key)
 
 # Load the Excel file
-file_path = "Prayer Timings Winter 2025(1).xlsx"
+file_path = "Prayer_timings.xlsx"
 xls = pd.ExcelFile(file_path)
 
 # Updated column names mapping
 column_names = [
     "Day", "Fajr Dawn", "Shorok Sunrise", "Dhuhr Noon", "Asr Afternoon", "Magrib Sunset", "Isha Evening",
-    "Fajr Iqamah", "Dhuhr Noon 1", "Dhuhr Noon 2", "Asr Afternoon 1",
+    "Fajr Iqamah", "Dhuhr 1", "Dhuhr 2", "Asr Aftern'n",
     "Magrib Sunset Iqamah", "Isha Evening Iqamah"
 ]
 
@@ -26,6 +28,15 @@ month_mapping = {
     1: "January",
     2: "February",
     3: "March",
+    4: "April",
+    5: "May",
+    6: "June",
+    7: "July",
+    8: "August",
+    9: "September",
+    10: "October",
+    11: "November",
+    12: "December",
 }
 def ensure_month_exists(month_name):
     # Check if the month already exists
@@ -60,6 +71,12 @@ def convert_time_to_string(value):
         return value.strftime('%H:%M')  # Convert to string in HH:MM format
     return value
 
+# Function to safely handle NaN values
+def handle_nan(value):
+    if isinstance(value, float) and math.isnan(value):
+        return None  # Replace NaN with None
+    return value
+
 # Process and insert data for each sheet (month)
 for i in range(1, 4):  # Loop through sheets 1 to 3
     sheet_name = f"Table {i}"
@@ -71,26 +88,24 @@ for i in range(1, 4):  # Loop through sheets 1 to 3
     df = pd.read_excel(xls, sheet_name=sheet_name, header=1)
     df.columns = column_names
 
-    # Assuming df is your DataFrame
-    
     # Insert data into Supabase
     for index, row in df.iterrows():
         data = {
             "id": str(uuid.uuid4()),  # Generate a unique ID
             "_order": index + 1,  # Set the order based on the index
-            "day": row["Day"],
-            "fajr": convert_time_to_string(row["Fajr Dawn"]),
-            "sunrise": convert_time_to_string(row["Shorok Sunrise"]),
-            "dhuhr": convert_time_to_string(row["Dhuhr Noon"]),
-            "asr": convert_time_to_string(row["Asr Afternoon"]),
-            "maghrib": convert_time_to_string(row["Magrib Sunset"]),
-            "isha": convert_time_to_string(row["Isha Evening"]),
-            "fajr_iqamah": convert_time_to_string(row["Fajr Iqamah"]),
-            "dhuhr_iqamah_1": convert_time_to_string(row["Dhuhr Noon 1"]),
-            "dhuhr_iqamah_2": convert_time_to_string(row["Dhuhr Noon 2"]),
-            "asr_iqamah_1": convert_time_to_string(row["Asr Afternoon 1"]),
-            "maghrib_iqamah": convert_time_to_string(row["Magrib Sunset Iqamah"]),
-            "isha_iqamah": convert_time_to_string(row["Isha Evening Iqamah"]),
+            "day": handle_nan(row["Day"]),
+            "fajr": handle_nan(convert_time_to_string(row["Fajr Dawn"])),
+            "sunrise": handle_nan(convert_time_to_string(row["Shorok Sunrise"])),
+            "dhuhr": handle_nan(convert_time_to_string(row["Dhuhr Noon"])),
+            "asr": handle_nan(convert_time_to_string(row["Asr Afternoon"])),
+            "maghrib": handle_nan(convert_time_to_string(row["Magrib Sunset"])),
+            "isha": handle_nan(convert_time_to_string(row["Isha Evening"])),
+            "fajr_iqamah": handle_nan(convert_time_to_string(row["Fajr Iqamah"])),
+            "dhuhr_iqamah_1": handle_nan(convert_time_to_string(row["Dhuhr 1"])),
+            "dhuhr_iqamah_2": handle_nan(convert_time_to_string(row["Dhuhr 2"])),
+            "asr_iqamah_1": handle_nan(convert_time_to_string(row["Asr Aftern'n"])),
+            "maghrib_iqamah": handle_nan(convert_time_to_string(row["Magrib Sunset Iqamah"])),
+            "isha_iqamah": handle_nan(convert_time_to_string(row["Isha Evening Iqamah"])),
             "_parent_id": month_id  # Link to the month ID
         }
         
